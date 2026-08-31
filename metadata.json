@@ -1,0 +1,6 @@
+{
+  "name": "3D Motion Graphics Studio",
+  "description": "Apple-style minimal motion graphics studio with 4K 60fps export, QuickTime MOV ProRes 4444 alpha transparency, and low-end device optimization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
