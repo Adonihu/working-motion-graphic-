@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Motion Studio</title>
+    <meta name="description" content="Precision Motion Graphics Studio & Deterministic 4K Video Renderer" />
+    <script>
+      (function() {
+        try {
+          var origFetch = typeof window !== 'undefined' ? window.fetch : null;
+          var customFetch = origFetch;
+          if (origFetch) {
+            try {
+              Object.defineProperty(window, 'fetch', {
+                get: function() { return customFetch; },
+                set: function(fn) { customFetch = fn; },
+                configurable: true,
+                enumerable: true
+              });
+            } catch (e) {}
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

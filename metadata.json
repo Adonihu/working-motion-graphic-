@@ -1,0 +1,6 @@
+{
+  "name": "Motion Studio",
+  "description": "Precision Motion Graphics Studio & Deterministic 4K Video Renderer",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

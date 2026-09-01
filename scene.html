@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bank Animation - Complete 10s Timeline</title>
+  
+  <script>
+    (function() {
+      try {
+        var origFetch = typeof window !== 'undefined' ? window.fetch : null;
+        var customFetch = origFetch;
+        if (origFetch) {
+          try {
+            Object.defineProperty(window, 'fetch', {
+              get: function() { return customFetch; },
+              set: function(fn) { customFetch = fn; },
+              configurable: true,
+              enumerable: true
+            });
+          } catch (e) {}
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- GSAP 3.12.5 via CDN -->
+  <script src="https://unpkg.com/gsap@3.12.5/dist/gsap.min.js"></script>
+
+  <style>
+    /* BRAND PALETTE (STRICT)
+       Off-White: #FAF9F6 (background only)
+       Brand Green: #8DC63F (accent elements only)
+       Black: #000000 (all text, icons, cursor)
+       NO other colors. NO gradients unless explicitly requested.
+    */
+    :root {
+      --bg-offwhite: #FAF9F6;
+      --brand-green: #8DC63F;
+      --brand-black: #000000;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #111418;
+      color: var(--brand-black);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Container wrapping the 1920x1080 stage to scale responsively */
+    #viewport-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Fixed 1920x1080 Stage */
+    #stage {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      background-color: var(--bg-offwhite);
+      overflow: hidden;
+      transform-origin: center center;
+      flex-shrink: 0;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Master Zoom-Out Container for Scene 12 */
+    #stage-zoom-wrapper {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+      will-change: transform, opacity, filter;
+    }
+
+    /* Full Viewport Scene */
+    #scene {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Scene 1: Centered Multi-Line Typography & Graphic Hierarchy */
+    .hero-wrapper {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      transform-origin: center center;
+      z-index: 10;
+    }
+
+    /* Top Line: "Bank 💸 slowing" */
+    .headline-line-top {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      font-size: 96px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.035em;
+      color: var(--brand-black);
+      white-space: nowrap;
+      perspective: 1000px;
+    }
+
+    /* Bottom Line: "you down?" + Bank Icon beside it */
+    .headline-line-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      font-size: 96px;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.035em;
+      color: var(--brand-black);
+      white-space: nowrap;
+      perspective: 1000px;
+    }
+
+    .word-group {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+      overflow: visible;
+      padding: 0 2px;
+    }
+
+    /* Letter Mask: clean kinetic baseline mask for distinct letter-by-letter slide-up */
+    .char-mask {
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: bottom;
+      padding: 0 1px 4px 1px;
+    }
+
+    .char {
+      display: inline-block;
+      transform-origin: 0% 100%;
+      will-change: transform, opacity;
+      color: var(--brand-black);
+    }
+
+    /* 💸 Emoji styled to match 96px bold typography */
+    .emoji-cash {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 96px;
+      line-height: 1;
+      vertical-align: middle;
+      transform-origin: center center;
+      will-change: transform, opacity;
+    }
+
+    /* Minimal Black Line-Art Bank Icon beside "down?" */
+    .bank-icon-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 88px;
+      height: 88px;
+      margin-left: 4px;
+      vertical-align: middle;
+      transform-origin: center center;
+      will-change: transform, opacity;
+    }
+
+    .bank-icon-svg {
+      width: 84px;
+      height: 84px;
+      stroke: var(--brand-black);
+      fill: none;
+      stroke-width: 5px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Interactive Center Container */
+    .center-stage-container {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* Action Buttons (Pill & Circle Morphs) */
+    .action-btn {
+      position: absolute;
+      width: 380px;
+      height: 104px;
+      border-radius: 9999px; /* Fully rounded pill shape */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      transform-origin: center center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+      white-space: nowrap;
+      user-select: none;
+      will-change: transform, opacity, width, height, border-radius, border;
+    }
+
+    /* Left & Right Initial Buttons: Solid Black with off-white text */
+    .btn-left, .btn-right {
+      background-color: var(--brand-black);
+      color: var(--bg-offwhite);
+      z-index: 22;
+    }
+
+    /* High-Luminance Feathered Rotating Stroke Trail in #8DC63F */
+    .add-funds-trail-svg {
+      position: absolute;
+      top: -24px;
+      left: -24px;
+      width: 428px;
+      height: 152px;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 50;
+      mix-blend-mode: color-dodge;
+      filter: drop-shadow(0 0 16px #8DC63F) drop-shadow(0 0 36px rgba(141, 198, 63, 1));
+    }
+
+    .trail-path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      mix-blend-mode: color-dodge;
+    }
+
+    /* 1. Outer Ambient Layer: Thick stroke with heavy blur in #8DC63F */
+    .trail-ambient {
+      stroke: #8DC63F;
+      stroke-width: 28px;
+      opacity: 0.95;
+      filter: url(#trail-glow-wide);
+      mix-blend-mode: color-dodge;
+    }
+
+    /* 2. Mid Diffusion Layer: Medium thickness with moderate blur in #8DC63F */
+    .trail-diffusion {
+      stroke: #a4e54f;
+      stroke-width: 15px;
+      opacity: 1.0;
+      filter: url(#trail-glow-mid);
+      mix-blend-mode: color-dodge;
+    }
+
+    /* 3. Soft Core Layer: Concentrated stroke with slight blur in intense #8DC63F */
+    .trail-core {
+      stroke: #bcf36a;
+      stroke-width: 7px;
+      opacity: 1.0;
+      filter: url(#trail-glow-soft);
+      mix-blend-mode: color-dodge;
+    }
+
+    /* 4. Leading White Hotspot: Thin, pure white (#ffffff) head with micro-blur for incandescent core */
+    .trail-hotspot {
+      stroke: #ffffff;
+      stroke-width: 4px;
+      opacity: 1.0;
+      filter: url(#trail-glow-core);
+      mix-blend-mode: color-dodge;
+    }
+
+    /* Ghostly Outward Click Ripple Layers for Send Button */
+    .click-ghost-aura {
+      position: absolute;
+      width: 380px;
+      height: 104px;
+      border-radius: 9999px;
+      pointer-events: none;
+      z-index: 45;
+      border: 3.5px solid #8DC63F;
+      background: radial-gradient(ellipse at center, rgba(141, 198, 63, 0.45) 0%, rgba(141, 198, 63, 0.15) 55%, rgba(141, 198, 63, 0) 75%);
+      box-shadow: 0 0 28px rgba(141, 198, 63, 0.9), inset 0 0 20px rgba(141, 198, 63, 0.6);
+      opacity: 0;
+      transform-origin: center center;
+      mix-blend-mode: multiply;
+      filter: blur(1.5px);
+    }
+
+    .click-ghost-core {
+      position: absolute;
+      width: 380px;
+      height: 104px;
+      border-radius: 9999px;
+      pointer-events: none;
+      z-index: 46;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 20px rgba(141, 198, 63, 1), 0 0 40px rgba(141, 198, 63, 0.8);
+      opacity: 0;
+      transform-origin: center center;
+      filter: blur(1px);
+    }
+
+    /* Center Button: Filled with Brand Green #8DC63F, bold black text */
+    .btn-center {
+      background-color: var(--brand-green);
+      color: var(--brand-black);
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -0.025em;
+      box-shadow: 0 18px 48px rgba(141, 198, 63, 0.35);
+      z-index: 30;
+      border: 0px solid #000000;
+      overflow: hidden;
+    }
+
+    .btn-label-send {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+    }
+
+    /* Center Circle Icons Stack */
+    .center-icon-layer {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transform-origin: center center;
+      pointer-events: none;
+    }
+
+    .center-icon-svg {
+      width: 88px;
+      height: 88px;
+      stroke: var(--brand-black);
+      fill: none;
+      stroke-width: 4.5px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Orbit Wrapper for Smooth 360°/540° Carousels */
+    .orbit-wrapper {
+      position: absolute;
+      width: 0;
+      height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      transform-origin: 0px 0px;
+      pointer-events: none;
+    }
+
+    /* Side Circles in Wheel Row */
+    .side-circle {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background-color: var(--bg-offwhite);
+      border: 3px solid var(--brand-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+      transform-origin: center center;
+      will-change: transform, opacity;
+      opacity: 0;
+    }
+
+    .side-circle-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center center;
+    }
+
+    .side-circle-svg {
+      width: 66px;
+      height: 66px;
+      stroke: var(--brand-black);
+      fill: none;
+      stroke-width: 4px;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0;
+      transform-origin: center center;
+    }
+
+    /* Scene 8: Rapid Rolling Number Counter */
+    .number-counter-wrapper {
+      position: absolute;
+      top: calc(50% + 150px);
+      left: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 35;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .number-counter {
+      font-size: 40px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--brand-black);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      text-align: center;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+    }
+
+    .currency-unit {
+      font-size: 28px;
+      font-weight: 850;
+      letter-spacing: -0.01em;
+      margin-left: 8px;
+      color: var(--brand-black);
+      opacity: 0.9;
+    }
+
+    .number-counter-label {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brand-black);
+      opacity: 0.6;
+      margin-top: -2px;
+    }
+
+    /* Scene 10 & 11: Apple Pay style Brand Lockup & Kinetic Roller (Enlarged +30%) */
+    .brand-finale-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      transform-origin: center center;
+    }
+
+    /* TeleBirr Brand Logo Block (136px) */
+    .brand-logo-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 136px;
+      height: 136px;
+      flex-shrink: 0;
+      transform-origin: center center;
+    }
+
+    /* TeleBirr Brand Logo SVG (132px) */
+    .brand-logo-svg {
+      width: 132px;
+      height: 132px;
+      fill: var(--brand-black);
+      stroke: var(--brand-black);
+      stroke-width: 0.5px;
+      transform-origin: center center;
+    }
+
+    /* Kinetic Vertical Roller Window (144px height, +30% enlarged) */
+    .text-roller-window {
+      position: relative;
+      height: 144px;
+      min-width: 540px;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.3) 12%, rgba(0, 0, 0, 1) 28%, rgba(0, 0, 0, 1) 72%, rgba(0, 0, 0, 0.3) 88%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.3) 12%, rgba(0, 0, 0, 1) 28%, rgba(0, 0, 0, 1) 72%, rgba(0, 0, 0, 0.3) 88%, transparent 100%);
+    }
+
+    .text-roller-track {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      width: 100%;
+      transform-origin: left center;
+      will-change: transform;
+    }
+
+    .roller-item {
+      height: 144px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      font-size: 120px;
+      font-weight: 850;
+      letter-spacing: -0.04em;
+      color: var(--brand-black);
+      line-height: 1;
+      white-space: nowrap;
+      transform-origin: left center;
+      will-change: transform, opacity, filter;
+    }
+
+    /* Scene 3: Minimalist Black SVG Cursor */
+    .cursor-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 44px;
+      height: 44px;
+      margin-top: -14px;
+      margin-left: 24px;
+      pointer-events: none;
+      z-index: 50;
+      transform-origin: 8px 4px;
+      will-change: transform, opacity;
+    }
+
+    .cursor-svg {
+      width: 44px;
+      height: 44px;
+      filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.25));
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Responsive Scaling Viewport Wrapper -->
+  <div id="viewport-wrapper">
+    <!-- Fixed 1920x1080 Native Canvas Stage -->
+    <div id="stage">
+      
+      <!-- Stage Master Zoom Wrapper for Scene 12 Closing Zoom-Out & Blur -->
+      <div id="stage-zoom-wrapper">
+        <div id="scene">
+          
+          <!-- Scene 1: Hero Hook Headline -->
+          <div class="hero-wrapper" id="hero-wrapper">
+            <!-- Line 1 (Top): "Bank" + 💸 + "slowing" -->
+            <div class="headline-line-top" id="line-top">
+              <span class="word-group" id="group-bank">
+                <span class="char-mask"><span class="char">B</span></span><span class="char-mask"><span class="char">a</span></span><span class="char-mask"><span class="char">n</span></span><span class="char-mask"><span class="char">k</span></span>
+              </span>
+              <span class="char-mask"><span class="emoji-cash" id="emoji-cash">💸</span></span>
+              <span class="word-group" id="group-slowing">
+                <span class="char-mask"><span class="char">s</span></span><span class="char-mask"><span class="char">l</span></span><span class="char-mask"><span class="char">o</span></span><span class="char-mask"><span class="char">w</span></span><span class="char-mask"><span class="char">i</span></span><span class="char-mask"><span class="char">n</span></span><span class="char-mask"><span class="char">g</span></span>
+              </span>
+            </div>
+
+            <!-- Line 2 (Bottom): "you down?" + Classical Bank Icon beside it -->
+            <div class="headline-line-bottom" id="line-bottom">
+              <span class="word-group" id="group-you">
+                <span class="char-mask"><span class="char">y</span></span><span class="char-mask"><span class="char">o</span></span><span class="char-mask"><span class="char">u</span></span>
+              </span>
+              <span class="word-group" id="group-down">
+                <span class="char-mask"><span class="char">d</span></span><span class="char-mask"><span class="char">o</span></span><span class="char-mask"><span class="char">w</span></span><span class="char-mask"><span class="char">n</span></span><span class="char-mask"><span class="char">?</span></span>
+              </span>
+              
+              <span class="char-mask">
+                <div class="bank-icon-container" id="bank-icon">
+                  <svg class="bank-icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Triangle Roof / Pediment -->
+                    <polygon points="32,6 6,22 58,22" />
+                    <!-- Architrave / Entablature below roof -->
+                    <line x1="10" y1="22" x2="54" y2="22" />
+                    <line x1="8" y1="27" x2="56" y2="27" />
+                    <!-- 4 Classical Columns -->
+                    <line x1="15" y1="27" x2="15" y2="49" />
+                    <line x1="26" y1="27" x2="26" y2="49" />
+                    <line x1="38" y1="27" x2="38" y2="49" />
+                    <line x1="49" y1="27" x2="49" y2="49" />
+                    <!-- Stepped Base Foundation -->
+                    <line x1="8" y1="49" x2="56" y2="49" />
+                    <line x1="4" y1="55" x2="60" y2="55" />
+                  </svg>
+                </div>
+              </span>
+            </div>
+          </div>
+
+          <!-- Dynamic Center Assembly -->
+          <div class="center-stage-container" id="center-stage-container">
+            
+            <!-- Orbit Parent Rig for Scenes 6, 7 & 8 Carousel -->
+            <div class="orbit-wrapper" id="orbit-wrapper">
+              <!-- Left Side Circle -->
+              <div class="side-circle" id="circle-left">
+                <div class="side-circle-inner" id="circle-left-inner">
+                  <!-- Scene 7 Left Icon: "Send & Receive Money" (two arrows exchanging) -->
+                  <svg class="side-circle-svg" id="icon-side-left" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Exchanging Arrows in dynamic loop -->
+                    <path d="M14 24 L48 24 M40 16 L48 24 L40 32" />
+                    <path d="M50 40 L16 40 M24 32 L16 40 L24 48" />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Right Side Circle -->
+              <div class="side-circle" id="circle-right">
+                <div class="side-circle-inner" id="circle-right-inner">
+                  <!-- Scene 7 Right Icon: "Digital Microcredit (Loans)" (hand holding coin / credit) -->
+                  <svg class="side-circle-svg" id="icon-side-right" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Coin above outstretched hand -->
+                    <circle cx="32" cy="18" r="10" stroke-width="4" />
+                    <line x1="32" y1="13" x2="32" y2="23" stroke-width="3" />
+                    <!-- Hand line-art -->
+                    <path d="M12 44 L26 44 L36 38 L48 38 C52 38, 54 41, 52 44 L44 50 L28 50 L12 44" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Left Pill Button: + Add Funds (Slides up in Scene 2, scatters in Scene 4) -->
+            <div class="action-btn btn-left" id="btn-add-funds">
+              <!-- High-Luminance Feathered Rotating Light Trail in #8DC63F (Scenes 2 to 3) -->
+              <svg class="add-funds-trail-svg" id="add-funds-trail-svg" viewBox="-24 -24 428 152" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <!-- 1. Outer Ambient Layer Filter: Heavy Gaussian Blur -->
+                  <filter id="trail-glow-wide" x="-60%" y="-60%" width="220%" height="220%">
+                    <feGaussianBlur stdDeviation="14" />
+                  </filter>
+                  <!-- 2. Mid Diffusion Layer Filter: Moderate Gaussian Blur -->
+                  <filter id="trail-glow-mid" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="6" />
+                  </filter>
+                  <!-- 3. Soft Core Layer Filter: Slight Gaussian Blur -->
+                  <filter id="trail-glow-soft" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="2" />
+                  </filter>
+                  <!-- 4. Leading White Hotspot Filter: Micro Gaussian Blur -->
+                  <filter id="trail-glow-core" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="0.8" />
+                  </filter>
+                </defs>
+                
+                <g class="trail-stack-group" id="trail-stack-group">
+                  <!-- Layer 1: Outer Ambient Layer (Thick stroke + wide atmospheric falloff in #8DC63F) -->
+                  <path class="trail-path trail-ambient" d="M 52,0 L 328,0 A 52,52 0 0,1 380,52 A 52,52 0 0,1 328,104 L 52,104 A 52,52 0 0,1 0,52 A 52,52 0 0,1 52,0 Z" pathLength="1000" stroke-dasharray="350 650" />
+                  <!-- Layer 2: Mid Diffusion Layer (Medium thickness + moderate blur in #8DC63F) -->
+                  <path class="trail-path trail-diffusion" d="M 52,0 L 328,0 A 52,52 0 0,1 380,52 A 52,52 0 0,1 328,104 L 52,104 A 52,52 0 0,1 0,52 A 52,52 0 0,1 52,0 Z" pathLength="1000" stroke-dasharray="300 700" />
+                  <!-- Layer 3: Soft Core Layer (Concentrated stroke + slight blur in intense #8DC63F) -->
+                  <path class="trail-path trail-core" d="M 52,0 L 328,0 A 52,52 0 0,1 380,52 A 52,52 0 0,1 328,104 L 52,104 A 52,52 0 0,1 0,52 A 52,52 0 0,1 52,0 Z" pathLength="1000" stroke-dasharray="250 750" />
+                  <!-- Layer 4: Leading White Hotspot (Pure white #ffffff head + glaring hot core) -->
+                  <path class="trail-path trail-hotspot" d="M 52,0 L 328,0 A 52,52 0 0,1 380,52 A 52,52 0 0,1 328,104 L 52,104 A 52,52 0 0,1 0,52 A 52,52 0 0,1 52,0 Z" pathLength="1000" stroke-dasharray="80 920" />
+                </g>
+              </svg>
+              <span class="btn-text-content" style="position: relative; z-index: 10;">+ Add Funds</span>
+            </div>
+
+            <!-- Ghostly Outward Click Echo Rings (Scene 3 Send Button Click Accent) -->
+            <div class="click-ghost-aura" id="click-ghost-1"></div>
+            <div class="click-ghost-aura" id="click-ghost-2"></div>
+            <div class="click-ghost-core" id="click-ghost-core"></div>
+
+            <!-- Center Button: Send (Morphs to 240px Circle & displays carousel icons) -->
+            <div class="action-btn btn-center" id="btn-send">
+              <!-- Text Label (Fades out in Scene 5) -->
+              <div class="btn-label-send" id="label-send">
+                <span>Send</span>
+              </div>
+
+              <!-- Center Icon 1 (Scene 5): Airtime & Package Purchases -->
+              <div class="center-icon-layer" id="icon-airtime">
+                <svg class="center-icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Smartphone Outline -->
+                  <rect x="12" y="10" width="22" height="44" rx="4" />
+                  <line x1="19" y1="15" x2="27" y2="15" />
+                  <circle cx="23" cy="48" r="1.5" fill="#000000" />
+                  <!-- Package / Gift Box Combo -->
+                  <rect x="34" y="24" width="20" height="20" rx="2" />
+                  <line x1="44" y1="24" x2="44" y2="44" />
+                  <line x1="34" y1="33" x2="54" y2="33" />
+                  <!-- Airtime Signals -->
+                  <path d="M38 15 C41 12, 47 12, 50 15" />
+                  <path d="M35 11 C40 6, 48 6, 53 11" />
+                </svg>
+              </div>
+
+              <!-- Center Icon 2 (Scene 8 Rotation 1): Send & Receive Money -->
+              <div class="center-icon-layer" id="icon-center-send-receive">
+                <svg class="center-icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Two exchanging arrows -->
+                  <path d="M12 24 L50 24 M40 14 L50 24 L40 34" stroke-width="5" />
+                  <path d="M52 40 L14 40 M24 30 L14 40 L24 50" stroke-width="5" />
+                </svg>
+              </div>
+
+              <!-- Center Icon 3 (Scene 8 Rotation 2): Digital Microcredit -->
+              <div class="center-icon-layer" id="icon-center-microcredit">
+                <svg class="center-icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Coin above outstretched hand -->
+                  <circle cx="32" cy="18" r="10" stroke-width="4.5" />
+                  <line x1="32" y1="12" x2="32" y2="24" stroke-width="3.5" />
+                  <!-- Hand line-art -->
+                  <path d="M12 44 L26 44 L36 38 L48 38 C52 38, 54 41, 52 44 L44 50 L28 50 L12 44" stroke-width="4.5" />
+                </svg>
+              </div>
+
+              <!-- Center Icon 4 (Scene 8 Rotation 3): Utility & Merchant Payments -->
+              <div class="center-icon-layer" id="icon-center-utility">
+                <svg class="center-icon-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Shopping bag with lightning bolt -->
+                  <rect x="14" y="20" width="36" height="34" rx="4" stroke-width="4.5" />
+                  <path d="M22 20 C22 13, 42 13, 42 20" stroke-width="4.5" />
+                  <!-- Lightning bolt in center -->
+                  <polygon points="34,26 26,38 33,38 30,48 40,36 33,36" fill="#000000" stroke="#000000" stroke-width="1.5" />
+                </svg>
+              </div>
+
+            </div>
+
+            <!-- Right Pill Button: Receive (Slides down in Scene 2, scatters in Scene 4) -->
+            <div class="action-btn btn-right" id="btn-receive">
+              <span>Receive</span>
+            </div>
+
+            <!-- Scene 8: Rapid Number Counter below Center Bubble -->
+            <div class="number-counter-wrapper" id="counter-wrapper">
+              <div class="number-counter" id="number-counter">0 <span class="currency-unit">Br</span></div>
+            </div>
+
+            <!-- Scene 10 & 11: Brand Finale Container (TeleBirr logo + vertical kinetic roller: Pay -> Earn -> TeleBirr) -->
+            <div class="brand-finale-container" id="brand-finale">
+              <div class="brand-lockup" id="brand-lockup">
+                <!-- TeleBirr Brand Mark SVG on Left -->
+                <div class="brand-logo-mark" id="brand-logo-mark">
+                  <svg class="brand-logo-svg" viewBox="34 25 94 110" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M86.55 26.33C88.13 25.71 90.09 26.77 90.24 28.5C90.51 31.74 89.53 35.14 90.16 38.4C91.06 43.01 93.76 47.74 97.35 50.81C100.57 53.57 106.28 55.74 110.5 55.91C113.5 56.03 117.63 55.1 120.49 56.02C122.73 56.75 122.31 59.83 120.97 61.14C118.93 63.14 114.79 62.39 112.17 62.39C104.39 62.39 96.61 62.39 88.83 62.39C87 62.39 80.42 62.92 79.27 61.58C77.43 59.44 79.43 54.98 79.86 52.74C80.43 49.7 80.54 46.55 81.12 43.5C81.48 41.56 81.69 39.44 82.12 37.52C82.28 36.8 82.8 36.24 82.89 35.48C83.27 32.35 83.02 27.72 86.55 26.33ZM38.49 67.75C45.04 66.76 55.23 67.61 62.17 67.61C64.4 67.61 68.65 66.81 70.51 68.33C72.28 69.78 70.33 74.73 70.11 76.52C69.64 80.22 68.83 83.77 68.19 87.39C67.97 88.63 68.12 89.94 67.86 91.18C67.66 92.1 67.16 92.88 67.08 93.83C66.91 96.03 66.49 101.53 64.68 102.84C63.22 103.89 61.05 104.25 59.99 102.49C59.04 100.93 60.01 95.89 59.91 93.83C59.71 89.59 57.52 84.57 54.81 81.36C51.26 77.16 46.06 75.4 40.95 74.2C39.56 73.87 37.6 74.57 36.35 73.81C33.34 71.99 35.88 68.14 38.49 67.75ZM79.86 67.76C83.92 67.12 88.39 67.61 92.5 67.61C100.39 67.61 108.28 67.61 116.17 67.61C118.96 67.61 126.96 66.33 127.26 70.2C127.51 73.38 124.7 74.08 122.17 74.08C116.92 74.08 111.41 73.6 106.2 74.14C92.91 75.52 82.07 86 78.17 98.31C77.85 99.3 78.06 100.47 77.88 101.5C77.37 104.46 77.15 108.7 78.22 111.6C81.28 119.91 88.09 125.44 96.84 126.6C98.79 126.86 100.63 126.47 102.5 126.12C114.04 123.95 124.45 114.23 121.9 101.52C119.76 90.86 103.61 90.71 98.2 99.35C95.38 103.85 94.87 109.87 100.13 112.72C101.7 113.57 104.01 112.53 105.03 114.48C105.89 116.12 104.48 117.92 102.83 118.07C100.24 118.3 97.32 117.58 95.29 115.88C82.78 105.43 99.39 85.86 113.17 88.16C122.03 89.63 127.08 96.07 127.08 104.83C127.08 106.4 127.25 108.14 126.85 109.67C124.5 118.71 117.75 127.42 108.77 130.92C91.94 137.5 75.6 129.01 71.15 111.67C69.54 105.4 71.76 98.45 72.84 92.4C73.06 91.17 72.84 89.88 73.15 88.66C74.27 84.21 75.26 79.38 75.86 74.8C76.25 71.83 76.22 68.34 79.86 67.76Z" fill="#000000" fill-rule="evenodd" stroke="#000000" stroke-width="0.25" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+
+                <!-- Text Roller Window on Right -->
+                <div class="text-roller-window" id="text-roller-window">
+                  <div class="text-roller-track" id="text-roller-track">
+                    <div class="roller-item" id="roller-pay">Pay</div>
+                    <div class="roller-item" id="roller-earn">Earn</div>
+                    <div class="roller-item" id="roller-telebirr">TeleBirr</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Minimalist Black SVG Cursor -->
+            <div class="cursor-container" id="cursor">
+              <svg class="cursor-svg" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 3 L6 26 L12 20 L17 29 L21 27 L16 18 L24 18 Z" fill="#000000" stroke="#000000" stroke-width="1.2" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // MASTER CONFIGURATION & ENVIRONMENT INITIALIZATION
+    // -------------------------------------------------------------
+    const TOTAL_DURATION = 10.8; // 0.0s – 10.8s total animation (Scenes 1–12)
+    const FPS = 60;
+    const TOTAL_FRAMES = Math.round(TOTAL_DURATION * FPS); // 648 frames
+    window.TOTAL_FRAMES = TOTAL_FRAMES;
+    window.IS_LOOPING = true;
+    window.IS_TRANSPARENT_MODE = false;
+
+    // Elements
+    const stage = document.getElementById('stage');
+    const stageZoomWrapper = document.getElementById('stage-zoom-wrapper');
+    const heroWrapper = document.getElementById('hero-wrapper');
+    const heroTopChars = document.querySelectorAll('#line-top .char');
+    const heroBottomChars = document.querySelectorAll('#line-bottom .char');
+    const heroAllChars = document.querySelectorAll('.hero-wrapper .char');
+    const emojiCash = document.getElementById('emoji-cash');
+    const bankIcon = document.getElementById('bank-icon');
+
+    const btnAddFunds = document.getElementById('btn-add-funds');
+    const addFundsTrailSvg = document.getElementById('add-funds-trail-svg');
+    const trailPaths = document.querySelectorAll('.trail-path');
+    const trailAmbient = document.querySelector('.trail-ambient');
+    const trailDiffusion = document.querySelector('.trail-diffusion');
+    const trailCore = document.querySelector('.trail-core');
+    const trailHotspot = document.querySelector('.trail-hotspot');
+    const clickGhost1 = document.getElementById('click-ghost-1');
+    const clickGhost2 = document.getElementById('click-ghost-2');
+    const clickGhostCore = document.getElementById('click-ghost-core');
+    const btnSend = document.getElementById('btn-send');
+    const labelSend = document.getElementById('label-send');
+    const iconAirtime = document.getElementById('icon-airtime');
+    const iconCenterSendReceive = document.getElementById('icon-center-send-receive');
+    const iconCenterMicrocredit = document.getElementById('icon-center-microcredit');
+    const iconCenterUtility = document.getElementById('icon-center-utility');
+    const btnReceive = document.getElementById('btn-receive');
+    
+    const orbitWrapper = document.getElementById('orbit-wrapper');
+    const circleLeft = document.getElementById('circle-left');
+    const circleLeftInner = document.getElementById('circle-left-inner');
+    const iconSideLeft = document.getElementById('icon-side-left');
+    
+    const circleRight = document.getElementById('circle-right');
+    const circleRightInner = document.getElementById('circle-right-inner');
+    const iconSideRight = document.getElementById('icon-side-right');
+
+    const counterWrapper = document.getElementById('counter-wrapper');
+    const numberCounter = document.getElementById('number-counter');
+    const cursor = document.getElementById('cursor');
+
+    // Scene 10 & 11 Brand elements (Apple Pay style brand lockup & kinetic roller)
+    const brandFinale = document.getElementById('brand-finale');
+    const brandLockup = document.getElementById('brand-lockup');
+    const brandLogoMark = document.getElementById('brand-logo-mark');
+    const textRollerWindow = document.getElementById('text-roller-window');
+    const textRollerTrack = document.getElementById('text-roller-track');
+    const rollerPay = document.getElementById('roller-pay');
+    const rollerEarn = document.getElementById('roller-earn');
+    const rollerTelebirr = document.getElementById('roller-telebirr');
+
+    // Number counter animated state object
+    const counterObj = { value: 0 };
+
+    // Auto-fit 1920x1080 stage to viewport wrapper with crisp scaling
+    function resizeStage() {
+      if (window.IS_EXPORTING) return;
+      const wrapper = document.getElementById('viewport-wrapper');
+      if (!wrapper) return;
+      const availW = wrapper.clientWidth;
+      const availH = wrapper.clientHeight;
+      const scale = Math.min(availW / 1920, availH / 1080, 1.0);
+      stage.style.transform = `scale(${scale})`;
+      stage.style.transformOrigin = 'center center';
+    }
+    window.addEventListener('resize', resizeStage);
+    resizeStage();
+
+    window.setExportMode = function(isExporting) {
+      window.IS_EXPORTING = !!isExporting;
+      if (isExporting) {
+        stage.style.transform = 'none';
+        stage.style.margin = '0';
+      } else {
+        resizeStage();
+      }
+    };
+
+    // -------------------------------------------------------------
+    // MASTER GSAP TIMELINE DEFINITION
+    // -------------------------------------------------------------
+    // Master timeline MUST be paused: true initially with power2.out defaults
+    const tl = gsap.timeline({
+      paused: true,
+      defaults: { ease: "power2.out" }
+    });
+    window.tl = tl;
+
+    // Set initial element states at T = 0.0s
+    // Scene 1 elements (Letter by letter staggered reveal setup):
+    gsap.set(heroWrapper, {
+      opacity: 1,
+      scale: 1.0,
+      y: 0,
+      filter: "blur(0px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set(heroAllChars, {
+      opacity: 0,
+      y: 120,
+      rotateZ: 8,
+      scaleX: 0.85,
+      scaleY: 1.25,
+      filter: "blur(6px)",
+      transformOrigin: "0% 100%"
+    });
+
+    gsap.set(emojiCash, {
+      opacity: 0,
+      scale: 0.1,
+      scaleX: 0.7,
+      scaleY: 1.4,
+      rotation: -30,
+      y: 95,
+      filter: "blur(6px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set(bankIcon, {
+      opacity: 0,
+      scale: 0.1,
+      scaleX: 0.75,
+      scaleY: 1.35,
+      x: 0,
+      y: 95,
+      rotation: -18,
+      filter: "blur(6px)",
+      transformOrigin: "center center"
+    });
+
+    // Scene 2 & 3 elements:
+    gsap.set(btnAddFunds, {
+      opacity: 0,
+      y: 780,
+      x: -202,
+      rotation: 0,
+      scaleX: 0.82,
+      scaleY: 1.35,
+      filter: "blur(18px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set(addFundsTrailSvg, {
+      opacity: 0,
+      transformOrigin: "center center"
+    });
+
+    gsap.set(trailPaths, {
+      attr: { "stroke-dashoffset": 1000 },
+      strokeDashoffset: 1000
+    });
+
+    gsap.set(btnReceive, {
+      opacity: 0,
+      y: -780,
+      x: 202,
+      rotation: 0,
+      scaleX: 0.82,
+      scaleY: 1.35,
+      filter: "blur(18px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set([clickGhost1, clickGhost2, clickGhostCore], {
+      opacity: 0,
+      scaleX: 1.0,
+      scaleY: 1.0,
+      x: 0,
+      y: 0,
+      filter: "blur(2px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set(btnSend, {
+      opacity: 0,
+      scale: 0,
+      scaleY: 0,
+      scaleX: 0,
+      x: 0,
+      y: 0,
+      width: 380,
+      height: 104,
+      borderRadius: 9999,
+      borderWidth: 0,
+      borderColor: "#000000",
+      borderStyle: "solid",
+      filter: "blur(10px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set(labelSend, {
+      opacity: 1,
+      scale: 1,
+      transformOrigin: "center center"
+    });
+
+    // Center circle icons
+    gsap.set([iconAirtime, iconCenterSendReceive, iconCenterMicrocredit, iconCenterUtility], {
+      opacity: 0,
+      scale: 0.5,
+      filter: "blur(4px)",
+      transformOrigin: "center center"
+    });
+
+    // Orbit container & Side circles
+    gsap.set(orbitWrapper, {
+      rotation: 0,
+      transformOrigin: "center center"
+    });
+
+    gsap.set(circleLeft, {
+      opacity: 0,
+      scale: 0.4,
+      x: -250,
+      y: 0,
+      filter: "blur(14px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set(circleRight, {
+      opacity: 0,
+      scale: 0.4,
+      x: 250,
+      y: 0,
+      filter: "blur(14px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set([circleLeftInner, circleRightInner], {
+      rotation: 0,
+      transformOrigin: "center center"
+    });
+
+    gsap.set([iconSideLeft, iconSideRight], {
+      opacity: 0,
+      scale: 0.6,
+      filter: "blur(4px)",
+      transformOrigin: "center center"
+    });
+
+    // Counter
+    gsap.set(counterWrapper, {
+      opacity: 0,
+      scale: 0.9,
+      y: 20,
+      filter: "blur(4px)"
+    });
+
+    // Cursor: starts hidden to the right with initial directional motion blur
+    gsap.set(cursor, {
+      opacity: 0,
+      x: 680,
+      y: 95,
+      scale: 1,
+      filter: "blur(6px)",
+      transformOrigin: "8px 4px"
+    });
+
+    // Brand Finale Elements (Scenes 10-12)
+    gsap.set(brandFinale, {
+      opacity: 0,
+      scale: 0.88,
+      filter: "blur(8px)",
+      transformOrigin: "center center"
+    });
+
+    gsap.set(textRollerTrack, {
+      y: 0,
+      transformOrigin: "left center"
+    });
+
+    gsap.set(rollerPay, {
+      opacity: 1,
+      filter: "blur(0px)"
+    });
+
+    gsap.set(rollerEarn, {
+      opacity: 0.2,
+      filter: "blur(4px)"
+    });
+
+    gsap.set(rollerTelebirr, {
+      opacity: 0.2,
+      filter: "blur(4px)"
+    });
+
+    // Zoom-out stage wrapper (Scene 12)
+    gsap.set(stageZoomWrapper, {
+      scale: 1.0,
+      opacity: 1.0,
+      filter: "blur(0px)",
+      transformOrigin: "center center"
+    });
+
+    // -------------------------------------------------------------
+    // MASTER TIMELINE ANIMATION (0.0s – 10.8s) - BALANCED NATURAL PHYSICS (Crisp, Elegant, Premium)
+    // -------------------------------------------------------------
+
+    // =============================================================
+    // ACT 1, SCENE 1 (0.0s – 1.5s): Hook Text Kinetic Letter & Natural Float Dynamics
+    // =============================================================
+    
+    // Top line: "Bank" letters slide up with subtle vertical stretch, crisp ground impact & light spring
+    tl.to("#group-bank .char", {
+      duration: 0.65,
+      keyframes: [
+        { y: -16, rotateZ: -2, scaleY: 1.12, scaleX: 0.92, filter: "blur(1px)", opacity: 1, ease: "quad.out", duration: 0.32 },
+        { y: 3, rotateZ: 0.5, scaleY: 0.92, scaleX: 1.06, filter: "blur(0px)", ease: "quad.in", duration: 0.12 },
+        { y: -1, rotateZ: 0, scaleY: 1.02, scaleX: 0.99, filter: "blur(0px)", ease: "quad.out", duration: 0.09 },
+        { y: 0, rotateZ: 0, scaleY: 1.0, scaleX: 1.0, filter: "blur(0px)", ease: "elastic.out(1.2, 0.4)", duration: 0.12 }
+      ],
+      stagger: 0.045
+    }, 0.05);
+
+    // 💸 Cash Emoji: Natural entry pop with gentle squash on landing & organic settling
+    tl.to(emojiCash, {
+      duration: 0.72,
+      keyframes: [
+        { opacity: 1, scale: 1.25, scaleX: 1.20, scaleY: 0.85, rotation: 10, y: -12, filter: "blur(0px)", ease: "quad.out", duration: 0.32 },
+        { scale: 0.92, scaleX: 0.90, scaleY: 1.10, rotation: -3, y: 3, ease: "quad.in", duration: 0.14 },
+        { scale: 1.04, scaleX: 1.03, scaleY: 0.97, rotation: 1, y: -1, ease: "quad.out", duration: 0.12 },
+        { scale: 1.0, scaleX: 1.0, scaleY: 1.0, rotation: 0, y: 0, ease: "elastic.out(1.25, 0.38)", duration: 0.14 }
+      ]
+    }, 0.22);
+
+    // "slowing" letters slide up with balanced energy & impact
+    tl.to("#group-slowing .char", {
+      duration: 0.65,
+      keyframes: [
+        { y: -16, rotateZ: -2, scaleY: 1.12, scaleX: 0.92, filter: "blur(1px)", opacity: 1, ease: "quad.out", duration: 0.32 },
+        { y: 3, rotateZ: 0.5, scaleY: 0.92, scaleX: 1.06, filter: "blur(0px)", ease: "quad.in", duration: 0.12 },
+        { y: -1, rotateZ: 0, scaleY: 1.02, scaleX: 0.99, filter: "blur(0px)", ease: "quad.out", duration: 0.09 },
+        { y: 0, rotateZ: 0, scaleY: 1.0, scaleX: 1.0, filter: "blur(0px)", ease: "elastic.out(1.2, 0.4)", duration: 0.12 }
+      ],
+      stagger: 0.042
+    }, 0.38);
+
+    // Bottom line: "you" letters slide up sequentially
+    tl.to("#group-you .char", {
+      duration: 0.65,
+      keyframes: [
+        { y: -16, rotateZ: -2, scaleY: 1.12, scaleX: 0.92, filter: "blur(1px)", opacity: 1, ease: "quad.out", duration: 0.32 },
+        { y: 3, rotateZ: 0.5, scaleY: 0.92, scaleX: 1.06, filter: "blur(0px)", ease: "quad.in", duration: 0.12 },
+        { y: -1, rotateZ: 0, scaleY: 1.02, scaleX: 0.99, filter: "blur(0px)", ease: "quad.out", duration: 0.09 },
+        { y: 0, rotateZ: 0, scaleY: 1.0, scaleX: 1.0, filter: "blur(0px)", ease: "elastic.out(1.2, 0.4)", duration: 0.12 }
+      ],
+      stagger: 0.045
+    }, 0.68);
+
+    // "down?" letters slide up sequentially
+    tl.to("#group-down .char", {
+      duration: 0.65,
+      keyframes: [
+        { y: -16, rotateZ: -2, scaleY: 1.12, scaleX: 0.92, filter: "blur(1px)", opacity: 1, ease: "quad.out", duration: 0.32 },
+        { y: 3, rotateZ: 0.5, scaleY: 0.92, scaleX: 1.06, filter: "blur(0px)", ease: "quad.in", duration: 0.12 },
+        { y: -1, rotateZ: 0, scaleY: 1.02, scaleX: 0.99, filter: "blur(0px)", ease: "quad.out", duration: 0.09 },
+        { y: 0, rotateZ: 0, scaleY: 1.0, scaleX: 1.0, filter: "blur(0px)", ease: "elastic.out(1.2, 0.4)", duration: 0.12 }
+      ],
+      stagger: 0.045
+    }, 0.88);
+
+    // Bank icon drops in with crisp landing & subtle bounce
+    tl.to(bankIcon, {
+      duration: 0.72,
+      keyframes: [
+        { opacity: 1, scale: 1.22, scaleX: 1.18, scaleY: 0.86, rotation: 6, y: -10, filter: "blur(0px)", ease: "quad.out", duration: 0.30 },
+        { scale: 0.92, scaleX: 0.90, scaleY: 1.10, rotation: -2, y: 3, ease: "quad.in", duration: 0.14 },
+        { scale: 1.03, scaleX: 1.02, scaleY: 0.98, rotation: 1, y: -1, ease: "quad.out", duration: 0.12 },
+        { scale: 1.0, scaleX: 1.0, scaleY: 1.0, rotation: 0, y: 0, ease: "elastic.out(1.25, 0.38)", duration: 0.16 }
+      ]
+    }, 1.08);
+
+    // Subtle premium floating breath on Hero Lockup
+    tl.to(heroWrapper, {
+      duration: 0.45,
+      y: -6,
+      rotation: 0.4,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 1.15);
+
+    // =============================================================
+    // ACT 1, SCENE 2: Camera Dolly Up & Velocity-Aligned Side Buttons Arrive (1.5s – 2.05s)
+    // =============================================================
+    tl.to(heroWrapper, {
+      duration: 0.55,
+      y: -780,
+      opacity: 0,
+      scaleX: 0.86,
+      scaleY: 1.25,
+      filter: "blur(20px)",
+      ease: "expo.in"
+    }, 1.5);
+
+    // "+ Add Funds" flies in from bottom with natural velocity stretch & crisp landing settle
+    tl.to(btnAddFunds, {
+      duration: 0.58,
+      keyframes: [
+        { opacity: 1, y: -12, scaleX: 0.88, scaleY: 1.24, filter: "blur(4px)", ease: "quad.in", duration: 0.28 },
+        { y: 5, scaleX: 1.14, scaleY: 0.88, filter: "blur(0px)", ease: "quad.out", duration: 0.14 },
+        { y: -2, scaleX: 0.97, scaleY: 1.04, filter: "blur(0px)", ease: "quad.inOut", duration: 0.08 },
+        { y: 0, scaleX: 1.0, scaleY: 1.0, filter: "blur(0px)", ease: "elastic.out(1.2, 0.42)", duration: 0.08 }
+      ]
+    }, 1.5);
+
+    // High-Luminance Feathered Rotating Light Trail in #8DC63F around "+ Add Funds" outer edge
+    tl.to(addFundsTrailSvg, {
+      duration: 0.18,
+      opacity: 1,
+      ease: "quad.out"
+    }, 1.5);
+
+    tl.fromTo(trailPaths, 
+      { attr: { "stroke-dashoffset": 1000 }, strokeDashoffset: 1000 },
+      { duration: 1.05, attr: { "stroke-dashoffset": -1000 }, strokeDashoffset: -1000, ease: "power2.inOut" },
+      1.5
+    );
+
+    // "Receive" flies in from top with matching balanced dynamics
+    tl.to(btnReceive, {
+      duration: 0.58,
+      keyframes: [
+        { opacity: 1, y: 12, scaleX: 0.88, scaleY: 1.24, filter: "blur(4px)", ease: "quad.in", duration: 0.28 },
+        { y: -5, scaleX: 1.14, scaleY: 0.88, filter: "blur(0px)", ease: "quad.out", duration: 0.14 },
+        { y: 2, scaleX: 0.97, scaleY: 1.04, filter: "blur(0px)", ease: "quad.inOut", duration: 0.08 },
+        { y: 0, scaleX: 1.0, scaleY: 1.0, filter: "blur(0px)", ease: "elastic.out(1.2, 0.42)", duration: 0.08 }
+      ]
+    }, 1.5);
+
+    // =============================================================
+    // ACT 1, SCENE 3: "Send" Emergence, Clean Collision Knockback & Tactile Click (2.05s – 3.5s)
+    // =============================================================
+    
+    // Central "Send" clean emergence pop
+    tl.to(btnSend, {
+      duration: 0.52,
+      keyframes: [
+        { opacity: 1, scale: 1.18, scaleX: 1.14, scaleY: 1.20, filter: "blur(1px)", ease: "quad.out", duration: 0.26 },
+        { scale: 0.94, scaleX: 0.96, scaleY: 0.92, filter: "blur(0px)", ease: "quad.inOut", duration: 0.12 },
+        { scale: 1.02, scaleX: 1.01, scaleY: 1.03, filter: "blur(0px)", ease: "quad.out", duration: 0.07 },
+        { scale: 1.0, scaleX: 1.0, scaleY: 1.0, filter: "blur(0px)", ease: "elastic.out(1.25, 0.4)", duration: 0.07 }
+      ]
+    }, 2.05);
+
+    // Stroke trail concludes and dissolves cleanly as Send halts
+    tl.to(addFundsTrailSvg, {
+      duration: 0.18,
+      opacity: 0,
+      ease: "quad.in"
+    }, 2.38);
+
+    // Side buttons experience a crisp shockwave nudge with natural recoil
+    tl.to(btnAddFunds, {
+      duration: 0.48,
+      keyframes: [
+        { x: -425, rotation: -4, scaleX: 0.92, scaleY: 1.10, filter: "blur(3px)", ease: "power3.out", duration: 0.22 },
+        { x: -398, rotation: 1, scaleX: 1.04, scaleY: 0.97, filter: "blur(0px)", ease: "quad.inOut", duration: 0.14 },
+        { x: -404, rotation: 0, scaleX: 1.0, scaleY: 1.0, filter: "blur(0px)", ease: "elastic.out(1.25, 0.38)", duration: 0.12 }
+      ]
+    }, 2.05);
+
+    tl.to(btnReceive, {
+      duration: 0.48,
+      keyframes: [
+        { x: 425, rotation: 4, scaleX: 0.92, scaleY: 1.10, filter: "blur(3px)", ease: "power3.out", duration: 0.22 },
+        { x: 398, rotation: -1, scaleX: 1.04, scaleY: 0.97, filter: "blur(0px)", ease: "quad.inOut", duration: 0.14 },
+        { x: 404, rotation: 0, scaleX: 1.0, scaleY: 1.0, filter: "blur(0px)", ease: "elastic.out(1.25, 0.38)", duration: 0.12 }
+      ]
+    }, 2.05);
+
+    // Subtle gentle float on buttons while waiting for cursor
+    tl.to(btnAddFunds, {
+      duration: 0.40,
+      y: -4,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 2.50);
+
+    tl.to(btnReceive, {
+      duration: 0.40,
+      y: 4,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 2.50);
+
+    // Cursor swoops in along smooth decelerating trajectory
+    tl.to(cursor, {
+      duration: 0.46,
+      opacity: 1,
+      x: 0,
+      y: 0,
+      filter: "blur(0px)",
+      ease: "expo.out"
+    }, 2.52);
+
+    // Tactile Click Down-Press: Satisfying crisp compression
+    tl.to(cursor, {
+      duration: 0.08,
+      scale: 0.82,
+      y: 6,
+      ease: "quad.in"
+    }, 2.98);
+
+    tl.to(btnSend, {
+      duration: 0.08,
+      scaleY: 0.84,
+      scaleX: 1.12,
+      y: 5,
+      boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+      ease: "quad.in"
+    }, 2.98);
+
+    // Side buttons micro reaction
+    tl.to([btnAddFunds, btnReceive], {
+      duration: 0.08,
+      y: 2,
+      scaleX: 1.02,
+      scaleY: 0.98,
+      ease: "quad.in"
+    }, 2.98);
+
+    // Tactile Click Release: Snappy spring rebound
+    tl.to(cursor, {
+      duration: 0.32,
+      scale: 1.0,
+      y: 0,
+      ease: "elastic.out(1.3, 0.35)"
+    }, 3.06);
+
+    // Ghostly Outward Click Echo Rings & Shockwave Accent
+    tl.to(clickGhostCore, {
+      duration: 0.38,
+      keyframes: [
+        { opacity: 0.95, scaleX: 1.10, scaleY: 1.18, filter: "blur(1px)", ease: "power2.out", duration: 0.12 },
+        { opacity: 0, scaleX: 1.35, scaleY: 1.55, filter: "blur(6px)", ease: "power2.out", duration: 0.26 }
+      ]
+    }, 3.06);
+
+    tl.to(clickGhost1, {
+      duration: 0.48,
+      keyframes: [
+        { opacity: 0.85, scaleX: 1.20, scaleY: 1.32, filter: "blur(3px)", ease: "power2.out", duration: 0.16 },
+        { opacity: 0, scaleX: 1.55, scaleY: 1.90, filter: "blur(14px)", ease: "power2.out", duration: 0.32 }
+      ]
+    }, 3.06);
+
+    tl.to(clickGhost2, {
+      duration: 0.56,
+      keyframes: [
+        { opacity: 0.65, scaleX: 1.14, scaleY: 1.22, filter: "blur(4px)", ease: "power2.out", duration: 0.18 },
+        { opacity: 0, scaleX: 1.75, scaleY: 2.20, filter: "blur(20px)", ease: "power2.out", duration: 0.38 }
+      ]
+    }, 3.09);
+
+    tl.to(btnSend, {
+      duration: 0.38,
+      keyframes: [
+        { scaleY: 1.18, scaleX: 0.90, y: -6, boxShadow: "0 20px 50px rgba(0, 0, 0, 0.16)", ease: "quad.out", duration: 0.13 },
+        { scaleY: 0.96, scaleX: 1.03, y: 2, ease: "quad.inOut", duration: 0.11 },
+        { scaleY: 1.0, scaleX: 1.0, y: 0, ease: "elastic.out(1.3, 0.36)", duration: 0.14 }
+      ]
+    }, 3.06);
+
+    tl.to([btnAddFunds, btnReceive], {
+      duration: 0.32,
+      y: 0,
+      scaleX: 1.0,
+      scaleY: 1.0,
+      ease: "elastic.out(1.2, 0.4)"
+    }, 3.06);
+
+    // =============================================================
+    // ACT 2, SCENE 4: Clean Velocity Fling & Centrifugal Scatter (3.5s – 4.0s)
+    // =============================================================
+    tl.to(cursor, {
+      duration: 0.36,
+      opacity: 0,
+      x: 220,
+      y: 90,
+      scale: 0.7,
+      filter: "blur(6px)",
+      ease: "power3.in"
+    }, 3.5);
+
+    tl.to(btnAddFunds, {
+      duration: 0.50,
+      x: -1300,
+      y: -750,
+      rotation: -35,
+      scaleX: 1.5,
+      scaleY: 0.7,
+      filter: "blur(20px)",
+      opacity: 0,
+      ease: "expo.in"
+    }, 3.5);
+
+    tl.to(btnReceive, {
+      duration: 0.50,
+      x: 1300,
+      y: 750,
+      rotation: 35,
+      scaleX: 1.5,
+      scaleY: 0.7,
+      filter: "blur(20px)",
+      opacity: 0,
+      ease: "expo.in"
+    }, 3.5);
+
+    // =============================================================
+    // ACT 2, SCENE 5: Premium Fluid Morph with Natural Jelly Oscillation (4.0s – 5.0s)
+    // =============================================================
+    tl.to(btnSend, {
+      duration: 0.85,
+      width: 240,
+      height: 240,
+      borderRadius: 120,
+      borderWidth: 3,
+      borderColor: "#000000",
+      boxShadow: "0 20px 50px rgba(0, 0, 0, 0.12)",
+      ease: "elastic.out(1.15, 0.45)"
+    }, 4.0);
+
+    // Balanced jelly deformation during morph
+    tl.to(btnSend, {
+      duration: 0.80,
+      keyframes: [
+        { scaleX: 0.82, scaleY: 1.22, ease: "quad.inOut", duration: 0.20 },
+        { scaleX: 1.18, scaleY: 0.88, ease: "quad.out", duration: 0.22 },
+        { scaleX: 0.94, scaleY: 1.05, ease: "quad.inOut", duration: 0.18 },
+        { scaleX: 1.0, scaleY: 1.0, ease: "elastic.out(1.3, 0.35)", duration: 0.20 }
+      ]
+    }, 4.0);
+
+    tl.to(labelSend, {
+      duration: 0.26,
+      opacity: 0,
+      scale: 0.4,
+      filter: "blur(5px)",
+      ease: "quad.in"
+    }, 4.0);
+
+    // Central Airtime icon pops in with natural spring
+    tl.to(iconAirtime, {
+      duration: 0.52,
+      keyframes: [
+        { opacity: 1, scale: 1.28, filter: "blur(0px)", ease: "quad.out", duration: 0.26 },
+        { scale: 0.92, ease: "quad.inOut", duration: 0.12 },
+        { scale: 1.0, ease: "elastic.out(1.3, 0.36)", duration: 0.14 }
+      ]
+    }, 4.22);
+
+    // =============================================================
+    // ACT 2, SCENE 6: Satellite Orbit Capture & Subtle Planetary Float (5.0s – 6.0s)
+    // =============================================================
+    
+    // Satellites sling inward smoothly with minimal overshoot
+    tl.to(circleLeft, {
+      duration: 0.75,
+      keyframes: [
+        { x: -238, scale: 1.04, opacity: 1, filter: "blur(2px)", ease: "power2.out", duration: 0.45 },
+        { x: -252, scale: 0.98, filter: "blur(0px)", ease: "power1.inOut", duration: 0.15 },
+        { x: -250, scale: 1.0, filter: "blur(0px)", ease: "power2.out", duration: 0.15 }
+      ]
+    }, 5.0);
+
+    tl.to(circleRight, {
+      duration: 0.75,
+      keyframes: [
+        { x: 238, scale: 1.04, opacity: 1, filter: "blur(2px)", ease: "power2.out", duration: 0.45 },
+        { x: 252, scale: 0.98, filter: "blur(0px)", ease: "power1.inOut", duration: 0.15 },
+        { x: 250, scale: 1.0, filter: "blur(0px)", ease: "power2.out", duration: 0.15 }
+      ]
+    }, 5.04);
+
+    // Subtle natural breath
+    tl.to(circleLeft, {
+      duration: 0.46,
+      y: -2,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 5.48);
+
+    tl.to(btnSend, {
+      duration: 0.46,
+      y: 2,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 5.50);
+
+    tl.to(circleRight, {
+      duration: 0.46,
+      y: -2,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 5.52);
+
+    // =============================================================
+    // ACT 2, SCENE 7: Content Fill with Clean, Subtle Drops (6.0s – 6.8s)
+    // =============================================================
+    tl.to(iconSideLeft, {
+      duration: 0.42,
+      opacity: 1,
+      scale: 1.0,
+      filter: "blur(0px)",
+      ease: "back.out(1.15)"
+    }, 6.02);
+
+    tl.to(iconSideRight, {
+      duration: 0.42,
+      opacity: 1,
+      scale: 1.0,
+      filter: "blur(0px)",
+      ease: "back.out(1.15)"
+    }, 6.10);
+
+    tl.to([circleLeft, circleRight], {
+      duration: 0.28,
+      scale: 1.015,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 6.42);
+
+    // =============================================================
+    // ACT 2, SCENE 8: The Carousel Orbit Whip with Clean Transitions & Precise Birr Counter (6.8s – 8.5s)
+    // =============================================================
+    
+    // --- ROTATION 1 (6.8s – 7.5s): 180° Orbit + Counter 0 -> 1,250 Br ---
+    tl.to(counterWrapper, {
+      duration: 0.32,
+      opacity: 1,
+      scale: 1.0,
+      y: 0,
+      filter: "blur(0px)",
+      ease: "power2.out"
+    }, 6.8);
+
+    tl.to(orbitWrapper, {
+      duration: 0.7,
+      rotation: 180,
+      ease: "power3.inOut"
+    }, 6.8);
+
+    tl.to([circleLeftInner, circleRightInner], {
+      duration: 0.7,
+      rotation: -180,
+      ease: "power3.inOut"
+    }, 6.8);
+
+    // Minimal motion blur during orbit whip
+    tl.to([circleLeft, circleRight], {
+      duration: 0.40,
+      keyframes: [
+        { filter: "blur(2px)", scaleX: 1.04, scaleY: 0.97, ease: "quad.in", duration: 0.20 },
+        { filter: "blur(0px)", scaleX: 1.0, scaleY: 1.0, ease: "quad.out", duration: 0.20 }
+      ]
+    }, 6.8);
+
+    tl.to(iconAirtime, {
+      duration: 0.20,
+      opacity: 0,
+      scale: 0.6,
+      filter: "blur(3px)",
+      ease: "quad.in"
+    }, 6.8);
+
+    tl.to(iconCenterSendReceive, {
+      duration: 0.36,
+      opacity: 1,
+      scale: 1.0,
+      filter: "blur(0px)",
+      ease: "back.out(1.15)"
+    }, 6.92);
+
+    tl.to(counterObj, {
+      duration: 0.7,
+      value: 1250,
+      ease: "expo.out",
+      onUpdate: () => {
+        numberCounter.innerHTML = `${Math.round(counterObj.value).toLocaleString()} <span class="currency-unit">Br</span>`;
+      }
+    }, 6.8);
+
+    // Subtle counter milestone indicator
+    tl.to(counterWrapper, {
+      duration: 0.26,
+      scale: 1.06,
+      y: -2,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 7.10);
+
+    // Center hub gentle micro-pulse
+    tl.to(btnSend, {
+      duration: 0.26,
+      scale: 1.03,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 7.12);
+
+    // --- ROTATION 2 (7.5s – 8.0s): Another 180° (to 360°) + Counter 1,250 -> 3,500 Br ---
+    tl.to(orbitWrapper, {
+      duration: 0.5,
+      rotation: 360,
+      ease: "power3.inOut"
+    }, 7.5);
+
+    tl.to([circleLeftInner, circleRightInner], {
+      duration: 0.5,
+      rotation: -360,
+      ease: "power3.inOut"
+    }, 7.5);
+
+    tl.to([circleLeft, circleRight], {
+      duration: 0.34,
+      keyframes: [
+        { filter: "blur(2px)", scaleX: 1.04, scaleY: 0.97, ease: "quad.in", duration: 0.17 },
+        { filter: "blur(0px)", scaleX: 1.0, scaleY: 1.0, ease: "quad.out", duration: 0.17 }
+      ]
+    }, 7.5);
+
+    tl.to(iconCenterSendReceive, {
+      duration: 0.16,
+      opacity: 0,
+      scale: 0.6,
+      filter: "blur(3px)",
+      ease: "quad.in"
+    }, 7.5);
+
+    tl.to(iconCenterMicrocredit, {
+      duration: 0.32,
+      opacity: 1,
+      scale: 1.0,
+      filter: "blur(0px)",
+      ease: "back.out(1.15)"
+    }, 7.60);
+
+    tl.to(counterObj, {
+      duration: 0.5,
+      value: 3500,
+      ease: "expo.out",
+      onUpdate: () => {
+        numberCounter.innerHTML = `${Math.round(counterObj.value).toLocaleString()} <span class="currency-unit">Br</span>`;
+      }
+    }, 7.5);
+
+    tl.to(counterWrapper, {
+      duration: 0.24,
+      scale: 1.06,
+      y: -2,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 7.70);
+
+    tl.to(btnSend, {
+      duration: 0.24,
+      scale: 1.03,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 7.72);
+
+    // --- ROTATION 3 (8.0s – 8.5s): Another 180° (to 540°) + Counter 3,500 -> 5,000 Br ---
+    tl.to(orbitWrapper, {
+      duration: 0.5,
+      rotation: 540,
+      ease: "power3.inOut"
+    }, 8.0);
+
+    tl.to([circleLeftInner, circleRightInner], {
+      duration: 0.5,
+      rotation: -540,
+      ease: "power3.inOut"
+    }, 8.0);
+
+    tl.to([circleLeft, circleRight], {
+      duration: 0.34,
+      keyframes: [
+        { filter: "blur(2px)", scaleX: 1.04, scaleY: 0.97, ease: "quad.in", duration: 0.17 },
+        { filter: "blur(0px)", scaleX: 1.0, scaleY: 1.0, ease: "quad.out", duration: 0.17 }
+      ]
+    }, 8.0);
+
+    tl.to(iconCenterMicrocredit, {
+      duration: 0.16,
+      opacity: 0,
+      scale: 0.6,
+      filter: "blur(3px)",
+      ease: "quad.in"
+    }, 8.0);
+
+    tl.to(iconCenterUtility, {
+      duration: 0.32,
+      opacity: 1,
+      scale: 1.0,
+      filter: "blur(0px)",
+      ease: "back.out(1.15)"
+    }, 8.10);
+
+    tl.to(counterObj, {
+      duration: 0.5,
+      value: 5000,
+      ease: "expo.out",
+      onUpdate: () => {
+        numberCounter.innerHTML = `${Math.round(counterObj.value).toLocaleString()} <span class="currency-unit">Br</span>`;
+      }
+    }, 8.0);
+
+    tl.to(counterWrapper, {
+      duration: 0.24,
+      scale: 1.06,
+      y: -2,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 8.20);
+
+    tl.to(btnSend, {
+      duration: 0.24,
+      scale: 1.03,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 8.22);
+
+    // =============================================================
+    // ACT 3, SCENE 9: Clean Gravitational Vortex Implosion (8.5s – 8.75s)
+    // =============================================================
+    tl.to([circleLeft, circleRight, iconSideLeft, iconSideRight], {
+      duration: 0.25,
+      opacity: 0,
+      scale: 0,
+      filter: "blur(8px)",
+      ease: "power3.in"
+    }, 8.5);
+
+    tl.to(iconCenterUtility, {
+      duration: 0.25,
+      opacity: 0,
+      scale: 0.4,
+      filter: "blur(4px)",
+      ease: "power3.in"
+    }, 8.5);
+
+    tl.to(counterWrapper, {
+      duration: 0.25,
+      opacity: 0,
+      scale: 0.7,
+      y: 15,
+      filter: "blur(4px)",
+      ease: "power3.in"
+    }, 8.5);
+
+    tl.to(btnSend, {
+      duration: 0.25,
+      scale: 0,
+      opacity: 0,
+      filter: "blur(6px)",
+      ease: "power3.in"
+    }, 8.5);
+
+    // =============================================================
+    // ACT 3, SCENE 10: Brand Lockup Reveal with Refined Reveal (8.75s – 9.15s)
+    // =============================================================
+    tl.to(brandFinale, {
+      duration: 0.40,
+      opacity: 1,
+      scale: 1.0,
+      filter: "blur(0px)",
+      ease: "back.out(1.15)"
+    }, 8.75);
+
+    // Subtle floating breath on Brand Lockup
+    tl.to(brandFinale, {
+      duration: 0.36,
+      y: -2,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 8.95);
+
+    // =============================================================
+    // ACT 3, SCENE 11a: Kinetic Conveyor Scroll to "Earn" (9.15s – 9.9s)
+    // =============================================================
+    tl.to(textRollerTrack, {
+      duration: 0.42,
+      y: -144,
+      ease: "expo.out"
+    }, 9.15);
+
+    tl.to(rollerPay, {
+      duration: 0.32,
+      opacity: 0.2,
+      filter: "blur(4px)",
+      ease: "quad.out"
+    }, 9.15);
+
+    tl.to(rollerEarn, {
+      duration: 0.40,
+      opacity: 1.0,
+      filter: "blur(0px)",
+      ease: "expo.out"
+    }, 9.15);
+
+    // =============================================================
+    // ACT 3, SCENE 11b: Kinetic Conveyor Scroll to "TeleBirr" (9.9s – 10.55s)
+    // =============================================================
+    tl.to(textRollerTrack, {
+      duration: 0.42,
+      y: -288,
+      ease: "expo.out"
+    }, 9.9);
+
+    tl.to(rollerEarn, {
+      duration: 0.32,
+      opacity: 0.2,
+      filter: "blur(4px)",
+      ease: "quad.out"
+    }, 9.9);
+
+    tl.to(rollerTelebirr, {
+      duration: 0.40,
+      opacity: 1.0,
+      filter: "blur(0px)",
+      ease: "expo.out"
+    }, 9.9);
+
+    // Subtle clean victory accent on final TeleBirr brand
+    tl.to(brandFinale, {
+      duration: 0.30,
+      scale: 1.03,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    }, 10.15);
+
+    // =============================================================
+    // ACT 3, SCENE 12: Cinematic Closing Zoom Out (10.55s – 10.8s)
+    // =============================================================
+    tl.to(stageZoomWrapper, {
+      duration: 0.25,
+      scale: 0.35,
+      opacity: 0.2,
+      filter: "blur(6px)",
+      ease: "expo.inOut"
+    }, 10.55);
+
+    // -------------------------------------------------------------
+    // TIMELINE EVENT LISTENERS & TIME DISPLAY
+    // -------------------------------------------------------------
+    const updateUI = () => {
+      const curTime = tl.time();
+
+      // Keep counter text synchronized on any seek or reverse scrub
+      if (numberCounter) {
+        numberCounter.innerHTML = `${Math.round(counterObj.value).toLocaleString()} <span class="currency-unit">Br</span>`;
+      }
+
+      const curFrame = Math.round((curTime / TOTAL_DURATION) * TOTAL_FRAMES);
+      for (let i = 0; i < timelineUpdateListeners.length; i++) {
+        try { timelineUpdateListeners[i](curFrame); } catch(e) {}
+      }
+    };
+
+    tl.eventCallback("onUpdate", updateUI);
+
+    tl.eventCallback("onComplete", () => {
+      if (window.IS_LOOPING) {
+        tl.restart();
+      } else {
+        for (let i = 0; i < timelineCompleteListeners.length; i++) {
+          try { timelineCompleteListeners[i](); } catch(e) {}
+        }
+      }
+    });
+
+    // -------------------------------------------------------------
+    // STUDIO HARNESS INTEGRATION API HOOKS
+    // -------------------------------------------------------------
+    const timelineUpdateListeners = [];
+    const timelineCompleteListeners = [];
+
+    window.onTimelineUpdate = function(cb) {
+      if (typeof cb === 'function') timelineUpdateListeners.push(cb);
+    };
+
+    window.onTimelineComplete = function(cb) {
+      if (typeof cb === 'function') timelineCompleteListeners.push(cb);
+    };
+
+    window.setLooping = function(loop) {
+      window.IS_LOOPING = !!loop;
+    };
+
+    window.playNative = function(speed = 1.0) {
+      tl.timeScale(speed);
+      if (tl.progress() >= 0.999) {
+        tl.restart();
+      } else {
+        tl.play();
+      }
+    };
+
+    window.pauseNative = function() {
+      tl.pause();
+    };
+
+    window.playTimeline = window.playNative;
+    window.pauseTimeline = window.pauseNative;
+
+    window.seekFrame = function(frame) {
+      const clamped = Math.max(0, Math.min(TOTAL_FRAMES - 1, frame));
+      const targetTime = (clamped / TOTAL_FRAMES) * TOTAL_DURATION;
+      tl.pause();
+      tl.time(targetTime);
+      updateUI();
+    };
+
+    window.setTransparencyMode = function(enabled) {
+      window.IS_TRANSPARENT_MODE = !!enabled;
+      if (enabled) {
+        stage.style.backgroundColor = 'transparent';
+        stage.style.boxShadow = 'none';
+        document.body.style.backgroundColor = 'transparent';
+      } else {
+        stage.style.backgroundColor = 'var(--bg-offwhite)';
+        stage.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.35)';
+        document.body.style.backgroundColor = '#111418';
+      }
+    };
+
+    // Timeline Seek & Transparency Controls
+    window.seekFrame = function(frame) {
+      const clamped = Math.max(0, Math.min(TOTAL_FRAMES - 1, frame));
+      const targetTime = (clamped / TOTAL_FRAMES) * TOTAL_DURATION;
+      tl.pause();
+      tl.time(targetTime);
+      updateUI();
+    };
+
+    window.setTransparencyMode = function(enabled) {
+      window.IS_TRANSPARENT_MODE = !!enabled;
+      if (enabled) {
+        stage.style.backgroundColor = 'transparent';
+        stage.style.boxShadow = 'none';
+        document.body.style.backgroundColor = 'transparent';
+      } else {
+        stage.style.backgroundColor = 'var(--bg-offwhite)';
+        stage.style.boxShadow = '0 20px 60px rgba(0, 0, 0, 0.35)';
+        document.body.style.backgroundColor = '#111418';
+      }
+    };
+
+    // Auto-init and render initial state
+    window.addEventListener('DOMContentLoaded', () => {
+      tl.progress(0);
+      updateUI();
+      window.READY = true;
+    });
+
+    tl.progress(0);
+    updateUI();
+    window.READY = true;
+  </script>
+</body>
+</html>
